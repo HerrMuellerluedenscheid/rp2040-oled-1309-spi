@@ -9,7 +9,7 @@ The logic to drive the display via SPI has been ported from the [TIVA-C example]
   :width: 600
   :alt: OLED SPI example
 
-.. list-table:: Wireing
+.. list-table:: Wiring
    :widths: 50 50
    :header-rows: 1
 
