@@ -1,7 +1,7 @@
 //! Drives an OLED display
 #![no_std]
 #![no_main]
-
+use bsp::hal::Adc;
 use cortex_m_rt::entry;
 use defmt::*;
 use defmt_rtt as _;
@@ -13,6 +13,7 @@ use embedded_graphics::{
     pixelcolor::BinaryColor,
     text::Text,
 };
+use embedded_hal::adc::OneShot;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 use panic_probe as _;
@@ -94,22 +95,25 @@ fn main() -> ! {
         .text_color(BinaryColor::On)
         .build();
 
-    Text::with_baseline("Eureka", Point::zero(), text_style, Baseline::Top)
-        .draw(&mut disp)
-        .unwrap();
-
-    Text::with_baseline("works!", Point::new(0, 16), text_style, Baseline::Top)
-        .draw(&mut disp)
-        .unwrap();
-
-    disp.flush().unwrap();
+    // SETUP ADC
+    let mut adc = Adc::new(pac.ADC, &mut pac.RESETS);
+    let mut adc_pin_0 = pins.gpio26.into_floating_input();
+    let mut buffer = ryu::Buffer::new();
 
     loop {
         info!("on!");
         led_pin.set_high().unwrap();
         delay.delay_ms(1000);
+        disp.clear();
         info!("off!");
         led_pin.set_low().unwrap();
         delay.delay_ms(100);
+        let pin_adc_counts: u16 = adc.read(&mut adc_pin_0).unwrap();
+        let text = buffer.format(pin_adc_counts as f32);
+        Text::with_baseline(text, Point::zero(), text_style, Baseline::Top)
+            .draw(&mut disp)
+            .unwrap();
+
+        disp.flush().unwrap();
     }
 }

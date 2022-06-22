@@ -22,7 +22,7 @@ display-interface-spi = "0.4.1"
 ssd1309 = "0.3.0"
 embedded-graphics-core = { version = "^ 0.3", optional = true }
 embedded-graphics = "^ 0.7"
-
+ryu = "1.0"
 # but you can use any BSP. Uncomment this to use the pro_micro_rp2040 BSP instead
 # sparkfun-pro-micro-rp2040 = "0.2.0"
 

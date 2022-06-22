@@ -9,7 +9,7 @@ The logic to drive the display via SPI has been ported from the [TIVA-C example]
   :width: 600
   :alt: OLED SPI example
 
-.. list-table:: Wiring
+.. list-table:: Wiring OLED display
    :widths: 50 50
    :header-rows: 1
 
@@ -29,6 +29,19 @@ The logic to drive the display via SPI has been ported from the [TIVA-C example]
      - 3.3V
    * - GND
      - GND
+
+.. list-table:: Wiring capacitive soil moisture sensor
+   :widths: 50 50
+   :header-rows: 1
+
+   * - Sensor pin
+     - RP2040 pin
+   * - GND
+     - GND
+   * - VCC
+     - ADC_VREF
+   * - AOUT
+     - GP26_A0
 
 Run the example
 ---------------
