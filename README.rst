@@ -30,14 +30,19 @@ The logic to drive the display via SPI has been ported from the [TIVA-C example]
    * - GND
      - GND
 
-## Run the example
+Run the example
+---------------
 
 I used [pyOCD](https://pyocd.io/docs/installing):
+
+.. code:: bash
 
     pyocd gdbserver -t rp2040_core0
 
 You may want to change the `runner` from `arm-none-eabi-gdb` to e.g. `gdb-multiarch` dependent on the platform and setup you are using.
 
 Then:
+
+.. code:: bash
 
     cargo run
