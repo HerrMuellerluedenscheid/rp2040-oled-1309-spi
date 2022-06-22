@@ -65,10 +65,10 @@ fn main() -> ! {
     let mut led_pin = pins.led.into_push_pull_output();
 
     // These are implicitly used by the spi driver if they are in the correct mode
-    let _spi_sclk = pins.gpio2.into_mode::<gpio::FunctionSpi>();
-    let _spi_mosi = pins.gpio3.into_mode::<gpio::FunctionSpi>();
+    let _spi_sclk = pins.gpio2.into_mode::<gpio::FunctionSpi>(); // scl
+    let _spi_mosi = pins.gpio3.into_mode::<gpio::FunctionSpi>(); // sda
     let _spi_miso = pins.gpio4.into_mode::<gpio::FunctionSpi>();
-    let spi_cs = pins.gpio5.into_push_pull_output();
+    let spi_dc = pins.gpio5.into_push_pull_output();
     let mut reset = pins.gpio6.into_push_pull_output();
 
     // Create an SPI driver instance for the SPI0 device
@@ -78,10 +78,10 @@ fn main() -> ! {
     let spi = spi.init(
         &mut pac.RESETS,
         clocks.peripheral_clock.freq(),
-        16_000_000u32.Hz(),
+        400000_u32.Hz(),
         &embedded_hal::spi::MODE_0,
     );
-    let spi_interface = SPIInterfaceNoCS::new(spi, spi_cs);
+    let spi_interface = SPIInterfaceNoCS::new(spi, spi_dc);
     let mut disp: GraphicsMode<_> = Builder::new().connect(spi_interface).into();
 
     disp.reset(&mut reset, &mut delay).unwrap();
@@ -110,6 +110,6 @@ fn main() -> ! {
         delay.delay_ms(1000);
         info!("off!");
         led_pin.set_low().unwrap();
-        delay.delay_ms(1000);
+        delay.delay_ms(100);
     }
 }
