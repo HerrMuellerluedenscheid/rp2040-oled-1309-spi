@@ -1,7 +1,7 @@
 [package]
 authors = ["the rp-rs team and Marius Kriegerowski"]
 edition = "2018"
-readme = "README.md"
+readme = "README.rst"
 name = "rp2040-oled-example"
 version = "0.1.0"
 resolver = "2"

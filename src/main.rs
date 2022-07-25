@@ -17,7 +17,6 @@ use embedded_hal::adc::OneShot;
 use embedded_hal::digital::v2::OutputPin;
 use embedded_time::{fixed_point::FixedPoint, rate::Extensions};
 use panic_probe as _;
-use rp_pico;
 // Provide an alias for our BSP so we can switch targets quickly.
 // Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
 use rp_pico as bsp;
@@ -31,6 +30,13 @@ use bsp::hal::{
     watchdog::Watchdog,
 };
 use ssd1309::{prelude::GraphicsMode, Builder};
+
+// all values below are microseconds
+const WAIT_AFTER_WATERING: u32 = 30000;
+const WATERING: u32 = 1000;
+const SLEEP_AFTER_INFO: u32 = 1000;
+const MEASUREMENT_CYCLE: u32 = 10000;
+const HUMIDITY_THRESHOLD: i32 = 3000; // 3500 -> dry | 2000 -> wet
 
 #[entry]
 fn main() -> ! {
@@ -63,6 +69,10 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
+    // Setup pin for relay (water pump)
+    let mut waterpump_on = pins.gpio0.into_push_pull_output();
+    waterpump_on.set_high().unwrap();
+
     let mut led_pin = pins.led.into_push_pull_output();
 
     // These are implicitly used by the spi driver if they are in the correct mode
@@ -83,6 +93,7 @@ fn main() -> ! {
         &embedded_hal::spi::MODE_0,
     );
     let spi_interface = SPIInterfaceNoCS::new(spi, spi_dc);
+
     let mut disp: GraphicsMode<_> = Builder::new().connect(spi_interface).into();
 
     disp.reset(&mut reset, &mut delay).unwrap();
@@ -90,30 +101,60 @@ fn main() -> ! {
     disp.init().unwrap();
     disp.flush().unwrap();
 
-    let text_style = MonoTextStyleBuilder::new()
+    let test_style = MonoTextStyleBuilder::new()
         .font(&FONT_6X10)
         .text_color(BinaryColor::On)
         .build();
 
-    // SETUP ADC
+    // Setup ADC (moisture sensor)
     let mut adc = Adc::new(pac.ADC, &mut pac.RESETS);
     let mut adc_pin_0 = pins.gpio26.into_floating_input();
+    // first read seems off. This will be ignored:
+    let mut pin_adc_counts: i32 = adc.read(&mut adc_pin_0).unwrap();
+    delay.delay_ms(1000);
+
     let mut buffer = ryu::Buffer::new();
 
+    let mut text = "";
     loop {
-        info!("on!");
         led_pin.set_high().unwrap();
-        delay.delay_ms(1000);
-        disp.clear();
-        info!("off!");
-        led_pin.set_low().unwrap();
-        delay.delay_ms(100);
-        let pin_adc_counts: u16 = adc.read(&mut adc_pin_0).unwrap();
-        let text = buffer.format(pin_adc_counts as f32);
-        Text::with_baseline(text, Point::zero(), text_style, Baseline::Top)
+        pin_adc_counts = adc.read(&mut adc_pin_0).unwrap();
+        text = buffer.format(pin_adc_counts as f32);
+        Text::with_baseline(text, Point::zero(), test_style, Baseline::Top)
             .draw(&mut disp)
             .unwrap();
-
         disp.flush().unwrap();
+        delay.delay_ms(SLEEP_AFTER_INFO);
+
+        if pin_adc_counts > HUMIDITY_THRESHOLD {
+            disp.clear();
+            Text::with_baseline(
+                "value > 2300. watering...",
+                Point::zero(),
+                test_style,
+                Baseline::Top,
+            )
+            .draw(&mut disp)
+            .unwrap();
+            disp.flush().unwrap();
+            waterpump_on.set_low().unwrap();
+            delay.delay_ms(WATERING);
+            waterpump_on.set_high().unwrap();
+
+            disp.clear();
+            Text::with_baseline(
+                "Finished watering.\nWaiting 30 seconds...",
+                Point::zero(),
+                test_style,
+                Baseline::Top,
+            )
+            .draw(&mut disp)
+            .unwrap();
+            disp.flush().unwrap();
+            delay.delay_ms(WAIT_AFTER_WATERING);
+        }
+        disp.clear();
+        led_pin.set_low().unwrap();
+        delay.delay_ms(MEASUREMENT_CYCLE);
     }
 }
